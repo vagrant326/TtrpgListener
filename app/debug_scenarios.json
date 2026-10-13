@@ -1,0 +1,89 @@
+[
+  {
+    "name": "Typowa sesja: karczma → zasadzka → śmierć → zwycięstwo",
+    "segments": [
+      {
+        "expected": "spokoj",
+        "note": "karczma, handel",
+        "lines": [
+          "Dobra, wchodzimy do karczmy Pod Złamanym Kołem. Ile kosztuje nocleg?",
+          "Karczmarz mówi że dwie srebrne za pokój i jeszcze jedna za kolację.",
+          "To ja biorę piwo i pytam go czy słyszał coś o tej karawanie z Neverwinter.",
+          "Elara siada przy kominku i przegląda mapę, planujemy trasę na jutro."
+        ]
+      },
+      {
+        "expected": "walka",
+        "note": "zasadzka na drodze",
+        "lines": [
+          "Nagle z krzaków wyskakuje pięciu goblinów, rzućcie na inicjatywę.",
+          "Mam siedemnaście plus dwa, dziewiętnaście.",
+          "Atakuję najbliższego goblina mieczem, trafiam w klasę pancerza piętnaście.",
+          "Osiem obrażeń cięcia, goblin pada. Drugi strzela do ciebie z łuku, trafia za sześć.",
+          "Rzucam Fireball na tych trzech z tyłu, rzut obronny na zręczność."
+        ]
+      },
+      {
+        "expected": "smutek",
+        "note": "śmierć postaci",
+        "lines": [
+          "Thorin nie zdał trzeciego rzutu przeciw śmierci.",
+          "Kurde, naprawdę? Grałem nim od początku kampanii.",
+          "Elara klęka przy nim, trzyma go za rękę, ale on już nie oddycha.",
+          "Zakopujemy go pod dębem przy drodze, ja mówię kilka słów pożegnania."
+        ]
+      },
+      {
+        "expected": "zwyciestwo",
+        "note": "pokonanie bossa",
+        "lines": [
+          "Ostatni cios, nekromanta pada na kolana i jego ciało rozsypuje się w proch.",
+          "Tak! Udało się! Wreszcie go mamy!",
+          "W skrzyni za ołtarzem znajdujecie tysiąc sztuk złota i magiczny miecz plus dwa.",
+          "Wracamy do miasta, ludzie wiwatują, burmistrz urządza na naszą cześć ucztę."
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Pułapki: słowa bojowe bez walki, off-topic, niejednoznaczne",
+    "segments": [
+      {
+        "expected": "spokoj",
+        "note": "planowanie ataku (to jeszcze nie walka)",
+        "lines": [
+          "Dobra, to jak zaatakujemy jutro ten fort, to ty idziesz od wschodu.",
+          "A ja przygotuję wcześniej czar Fireball, mam jeszcze dwa sloty trzeciego poziomu.",
+          "Śpimy w obozie, ktoś bierze pierwszą wartę?"
+        ]
+      },
+      {
+        "expected": "spokoj",
+        "note": "rozmowa poza grą",
+        "lines": [
+          "Zamawiamy pizzę? Ja chcę hawajską.",
+          "Fuj, ananas na pizzy. Weź pepperoni.",
+          "Dobra, to pięć minut przerwy i gramy dalej."
+        ]
+      },
+      {
+        "expected": "walka",
+        "note": "walka bez słowa 'inicjatywa'",
+        "lines": [
+          "Smok zionie ogniem na całą drużynę, wszyscy rzut obronny na zręczność.",
+          "Dwadzieścia trzy obrażenia od ognia, ledwo żyję.",
+          "Rzucam się na niego z toporem, dwa ataki, oba trafiają."
+        ]
+      },
+      {
+        "expected": "smutek",
+        "note": "wspomnienie straty, spokojny ton",
+        "lines": [
+          "Stary mnich opowiada wam, że cała jego wioska spłonęła w czasie zarazy.",
+          "Jego córka też nie przeżyła. Od tamtej pory nikt tu nie przychodzi.",
+          "Moja postać odwraca wzrok. Przypomina jej się własna rodzina, której już nie ma."
+        ]
+      }
+    ]
+  }
+]

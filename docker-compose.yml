@@ -1,0 +1,15 @@
+services:
+  whisper:
+    build: ./whisper-server
+    container_name: ttrpg-whisper
+    ports:
+      - "127.0.0.1:8765:8765"
+    environment:
+      WHISPER_MODEL: ${WHISPER_MODEL:-small}
+      WHISPER_LANGUAGE: pl
+    volumes:
+      - whisper-models:/models
+    restart: unless-stopped
+
+volumes:
+  whisper-models:
