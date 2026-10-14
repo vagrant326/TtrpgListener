@@ -1,72 +1,126 @@
-# TTRPG Listener (PoC)
+# TTRPG Listener
 
-Słucha rozmowy przy stole, rozpoznaje nastrój i odpala scenę na włączonych integracjach
-(rzutnik, Philips Ambilight, Spotify).
+Słucha rozmowy przy stole i steruje **światłem** (rzutnik, Philips Ambilight) i **muzyką** (Spotify) sesji RPG.
 
 ```
-mikrofon ──► app (Windows, tkinter) ──10s PCM──► whisper (Docker, faster-whisper small, CPU)
-                 │◄────────── tekst ──────────────┘
-                 ├─ co 45s nowy tekst ──► claude -p --model haiku ──► klucz nastroju
-                 └─ scena ──► każda włączona integracja (osobny wątek)
+przeglądarka (mikrofon) ──PCM 16 kHz / WebSocket──► serwer Node ──PCM──► kontener STT (Docker)
+                                                     │                    ├─ Silero VAD tnie mowę na wypowiedzi
+                                                     │◄──── tekst ~0,5 s ─┴─ Parakeet TDT 0.6B v3 (CPU)
+                                                     ├─ co 5 s nowy tekst ──► stały proces `claude` (Haiku, subskrypcja)
+                                                     │                        └─► {"light": "noc", "music": "walka"}
+                                                     └─ preset ──► integracje kanału (rzutnik, Ambilight, Spotify)
 ```
+
+## Wymagania
+
+- Node 22.12+
+- Docker (na Windows/macOS: uruchomiony Docker Desktop)
+- zalogowany [Claude Code](https://claude.com/claude-code): polecenie `claude` w PATH. Klasyfikacja korzysta z jego subskrypcji, bez klucza API.
 
 ## Uruchomienie
 
-```powershell
-.\run.ps1
+```bash
+npm install
 ```
 
-Tworzy `.venv` w folderze projektu, stawia kontener `ttrpg-whisper` i odpala aplikację.
-Konfiguracja zapisuje się automatycznie w `%APPDATA%\TtrpgListener\config.json`.
+```bash
+npm start
+```
 
-Sprzątanie: `docker compose down -v`, usunięcie folderu projektu i `%APPDATA%\TtrpgListener`.
+`npm start` stawia kontener `ttrpg-stt`, buduje panel i otwiera go w przeglądarce pod http://127.0.0.1:8888.
+Za pierwszym razem Docker buduje obraz, a kontener pobiera model (~670 MB) do wolumenu Dockera. Postęp widać w panelu.
+Mikrofon obsługuje przeglądarka, więc aplikacja działa tak samo na macOS i Windows.
+
+## Na sesji
+
+1. **Start nasłuchu** (prawy górny róg) włącza mikrofon tego okna przeglądarki. Pod adresem `127.0.0.1` przeglądarka zapyta o zgodę.
+2. Kanały **Światło** i **Muzyka** są niezależne. Każdy ma własne presety i własny przełącznik **AUTO**.
+   W trybie AUTO Claude co kilka sekund wybiera preset na podstawie rozmowy.
+3. Kliknięcie presetu włącza go od razu i wyłącza AUTO w tym kanale, żeby AI go nie nadpisało. Przykład: ręcznie „Noc”,
+   a muzyka dalej sama przechodzi między „Spokojem” a „Walką”. Ponowne włączenie AUTO oddaje kanał AI.
+4. **Rzutnik** otwiera okno z kolorem światła. W Chrome/Edge otwiera się od razu na drugim ekranie, po zgodzie na
+   „zarządzanie oknami”. Dwuklik przełącza pełny ekran.
+   Okno działa też na innym urządzeniu (tablet, przeglądarka w TV) pod `/projector`.
+
+Presety, ich opisy dla AI i ustawienia integracji edytuje się w zakładkach **Presety** i **Integracje**.
+
+### Telefon jako pilot
+
+```bash
+npm run start:lan
+```
+
+Panel będzie dostępny w sieci lokalnej (adres pojawi się w konsoli). Przeglądarka daje dostęp do mikrofonu tylko pod
+`localhost` albo przez HTTPS, więc telefon działa jako pilot: presety, AUTO, podgląd. Nasłuch zostaje na laptopie.
+Panel nie ma hasła, więc tego trybu używaj tylko w zaufanej sieci.
 
 ## Integracje
 
-Zakładka **Integracje**: włączanie, ustawienia, akcje (parowanie, połącz, pokaż rzutnik).
-Zakładka **Nastroje i sceny**: co dana scena robi w każdej integracji.
+| Integracja | Kanał | Ustawienia | W presecie | Uwagi |
+|---|---|---|---|---|
+| Rzutnik | światło | czas przejścia | kolor | płynne przejście w przeglądarce |
+| Philips Ambilight | światło | IP, czas przejścia | kolor | „Paruj” → PIN z TV → „Potwierdź PIN” |
+| Spotify | muzyka | Client ID, urządzenie | playlista, start (od początku / od losowego utworu), tasowanie | wymaga Premium; ta sama playlista nie jest restartowana |
 
-| Integracja | Ustawienia | W scenie | Uwagi |
-|---|---|---|---|
-| Rzutnik | monitor, czas przejścia | kolor | płynne przejście 30 fps, Esc zamyka okno |
-| Philips Ambilight | IP, czas przejścia | kolor | „Paruj” → PIN z TV; przejście ~6 kl./s (każda klatka to request do TV) |
-| Spotify | Client ID, urządzenie | playlista | wymaga Premium; ta sama playlista nie jest restartowana |
+Spotify, jednorazowo:
+1. Na https://developer.spotify.com/dashboard → Create app, zaznacz Web API, dodaj Redirect URI `http://127.0.0.1:8888/callback`.
+2. Client ID wklej w Integracje → Spotify, potem „Połącz”.
 
-Spotify, jednorazowo: https://developer.spotify.com/dashboard → Create app, Redirect URI
-`http://127.0.0.1:8888/callback`, Web API. Client ID wklej w Integracje → Połącz.
-Przed sesją uruchom aplikację Spotify („Pokaż urządzenia” pokaże, czy jest widoczna).
+Po przesiadce z wersji pythonowej kliknij „Połącz ponownie”. Start od losowego utworu potrzebuje dodatkowego
+uprawnienia do odczytu playlist; bez niego losowy start idzie przez tasowanie Spotify.
+Przed sesją uruchom aplikację Spotify. „Pokaż urządzenia” pokaże, czy jest widoczna.
 
 ### Nowa integracja
 
-1. Nowy plik w `app/integrations/`, klasa dziedzicząca po `Integration`:
-   `id`, `name`, `settings_fields`, `scene_fields`, `apply(scene, mood)`, opcjonalnie `actions()` i `status()`.
-2. Dopisz klasę do `INTEGRATIONS` w `app/integrations/registry.py`.
+1. Nowy plik w `server/integrations/`, klasa dziedzicząca po `Integration`:
+   `id`, `name`, `channel`, `settingsFields`, `presetFields`, `apply(settings, preset)`, opcjonalnie `actions()`/`runAction()` i `status()`.
+2. Dopisz klasę do `INTEGRATIONS` w `server/integrations/registry.ts`.
 
-UI i zapis konfiguracji generują się z pól. Do płynnych kolorów jest `ColorFader`.
+Formularze w panelu generują się z pól. Do płynnych kolorów jest `ColorFader`.
+
+## Jakość rozpoznawania
+
+- **Opisy presetów**: z nich AI wie, kiedy co wybrać. Opisuj, jak brzmi rozmowa, gdy preset pasuje, a nie samą nazwę.
+- **Kontekst kampanii** (Ustawienia): nazwy własne i setting. Pomaga Claude'owi zrozumieć przekręcone słowa.
+- **Poprawki transkrypcji** (Ustawienia): pary `źle => dobrze`, np. `pistonkrik => Piston Creek`.
+- Przy słabym mikrofonie zwykle pomagają redukcja szumu i automatyczne wzmocnienie (Ustawienia).
+- Wątki CPU kontenera: wpisz `STT_THREADS=8` do pliku `.env` w folderze projektu (domyślnie 4) i uruchom
+  `docker compose up -d --force-recreate`.
+
+## Dane i sprzątanie
+
+Dane aplikacji leżą w `%APPDATA%\TtrpgListener` (Windows) albo `~/Library/Application Support/TtrpgListener` (macOS):
+`settings.json` (ustawienia i presety), `secrets.json` (parowanie TV, tokeny Spotify) i `logs/` (log JSONL z każdego uruchomienia).
+Model mowy jest tylko w wolumenie Dockera.
+
+Ustawienia z wersji pythonowej (`config.json`) importują się przy pierwszym starcie. Każda dawna scena staje się
+presetem światła i presetem muzyki.
+
+Pełne usunięcie: `docker compose down -v --rmi local` (kontener, obraz i model), potem folder projektu i folder danych.
 
 ## Debugowanie
 
 Zakładka **Debug**:
-- miernik poziomu mikrofonu z progiem ciszy (do ustawienia `silence_rms`),
-- „Wstrzyknij tekst” / „Klasyfikuj teraz”: test bez mówienia,
-- „Transkrybuj WAV…”: przepuszcza plik przez Whispera tak jak mikrofon,
-- scenariusze (`app/debug_scenarios.json`): skryptowane linie z oczekiwanym nastrojem, liczona trafność,
-- tabela wszystkich zdarzeń; kliknięcie pokazuje szczegóły (pełny prompt, tokeny, czasy),
-- statystyki: szybkość Whispera, średnie tokeny/czas na zapytanie, trafność.
+- poziom mikrofonu i stan detekcji mowy,
+- „Wstrzyknij” / „Klasyfikuj teraz”: test bez mówienia,
+- „Transkrybuj plik…”: dowolny plik audio przechodzi przez ten sam kontener STT co mikrofon,
+- scenariusze (`server/debug/scenarios.json`): skryptowane linie z oczekiwanym presetem na kanał; liczona trafność,
+- lista zdarzeń; kliknięcie pokazuje szczegóły (pełny prompt, tokeny, czasy),
+- statystyki: szybkość STT, czas i tokeny Claude, trafność.
 
-Każde uruchomienie zapisuje log JSONL w `%APPDATA%\TtrpgListener\logs\`.
+Próbki audio (TTS, polskie głosy na zmianę) generuje na Windows `tools\generate-debug-wavs.ps1` do `debug-samples\`.
 
-Próbki audio (TTS, dwa polskie głosy na zmianę) generuje `tools\generate-debug-wavs.ps1` do `debug-samples\`.
+## Rozwój
 
-## Tokeny
+W dwóch terminalach:
 
-Do Claude idzie tylko tekst powiedziany od ostatniej klasyfikacji (max 1500 znaków) + obecny nastrój.
-Cisza nie trafia do Whispera, krótkie fragmenty (<60 znaków) czekają na więcej tekstu. Myślenie modelu jest wyłączone.
-Jedno zapytanie to ~850 tokenów wejścia i ~5 wyjścia.
-
-## Dokładniejsza transkrypcja
-
-```powershell
-$env:WHISPER_MODEL="medium"; docker compose up -d --force-recreate
+```bash
+npm run dev
 ```
-Wolniej (~3×) i mocniej obciąża CPU. Na tej maszynie `small` robi 10 s audio w ~2.2 s.
+
+```bash
+npm run dev:web
+```
+
+Pierwsze polecenie uruchamia serwer z przeładowaniem, drugie panel z hot reload pod http://localhost:5173.
+`npm run typecheck` sprawdza typy.

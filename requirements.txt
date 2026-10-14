@@ -1,5 +1,0 @@
-numpy
-sounddevice
-requests
-spotipy
-screeninfo

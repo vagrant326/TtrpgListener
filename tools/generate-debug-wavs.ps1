@@ -1,4 +1,4 @@
-# Renders app/debug_scenarios.json to WAV files with Windows TTS, alternating Polish voices per line
+# Renders server/debug/scenarios.json to WAV files with Windows TTS, alternating Polish voices per line
 # to imitate several people at the table. Output: debug-samples/
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Speech
@@ -6,7 +6,7 @@ Add-Type -AssemblyName System.Speech
 $root = Split-Path $PSScriptRoot -Parent
 $outDir = Join-Path $root "debug-samples"
 New-Item -ItemType Directory -Force $outDir | Out-Null
-$scenarios = Get-Content (Join-Path $root "app\debug_scenarios.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+$scenarios = Get-Content (Join-Path $root "server\debug\scenarios.json") -Raw -Encoding UTF8 | ConvertFrom-Json
 
 $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer
 $voices = @($synth.GetInstalledVoices() | Where-Object { $_.Enabled -and $_.VoiceInfo.Culture.Name -eq "pl-PL" } | ForEach-Object { $_.VoiceInfo.Name })
@@ -35,7 +35,8 @@ for ($s = 0; $s -lt $scenarios.Count; $s++) {
     $all = @()
     for ($g = 0; $g -lt $scenario.segments.Count; $g++) {
         $segment = $scenario.segments[$g]
-        Render $segment.lines (Join-Path $outDir ("s{0}-{1}-{2}.wav" -f ($s + 1), ($g + 1), $segment.expected))
+        $expected = ($segment.expected.PSObject.Properties.Value | Select-Object -Unique) -join "-"
+        Render $segment.lines (Join-Path $outDir ("s{0}-{1}-{2}.wav" -f ($s + 1), ($g + 1), $expected))
         $all += $segment.lines
     }
     Render $all (Join-Path $outDir ("s{0}-cala-sesja.wav" -f ($s + 1)))
